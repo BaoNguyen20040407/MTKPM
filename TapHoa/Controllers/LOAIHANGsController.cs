@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
+using TapHoa.Controllers.Strategy;
 using TapHoa.Models;
 
 namespace TapHoa.Controllers
@@ -13,14 +14,14 @@ namespace TapHoa.Controllers
     public class LOAIHANGsController : Controller
     {
         private TapHoaEntities db = new TapHoaEntities();
+        //Khai báo để sử dụng Strategy
+        private Context _context = new Context();
 
-        // GET: LOAIHANGs
         public ActionResult Index()
         {
             return View(db.LOAIHANGs.ToList());
         }
 
-        // GET: LOAIHANGs/Details/5
         public ActionResult Details(string id)
         {
             if (id == null)
@@ -35,47 +36,48 @@ namespace TapHoa.Controllers
             return View(lOAIHANG);
         }
 
-        // GET: LOAIHANGs/Create
         public ActionResult Create()
         {
             return View();
         }
-        private string GenerateNewMADVT()
-        {
-            var a = db.LOAIHANGs.OrderByDescending(d => d.MALOAI).FirstOrDefault();
-            if (a == null)
-            {
-                return "A000"; // Nếu chưa có mã nào trong cơ sở dữ liệu
-            }
 
-            string b = a.MALOAI;
-            char letterPart = b[0];
-            int numericPart = int.Parse(b.Substring(1));
-
-            numericPart++;
-            if (numericPart > 999)
-            {
-                numericPart = 0;
-                letterPart++;
-                if (letterPart > 'Z')
-                {
-                    throw new InvalidOperationException("Đã hết mã để sử dụng.");
-                }
-            }
-
-            string newMADVT = letterPart + numericPart.ToString("D3"); // Đảm bảo có 3 chữ số
-            return newMADVT;
-        }
-        // POST: LOAIHANGs/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "MALOAI,TENLOAI")] LOAIHANG lOAIHANG)
         {
             if (ModelState.IsValid)
             {
-                lOAIHANG.MALOAI = GenerateNewMADVT();
+                if (lOAIHANG.TENLOAI.Contains("Sữa"))
+                {
+                    _context.SetChoice(new FirstChoice());
+                    lOAIHANG.MALOAI = _context.ExecuteStrategy(db);
+                }
+                else if (lOAIHANG.TENLOAI.Contains("Mì gói"))
+                {
+                    _context.SetChoice(new SecondChoice());
+                    lOAIHANG.MALOAI = _context.ExecuteStrategy(db);
+                }
+                else
+                {
+                    // Tìm mã lớn nhất hiện tại trong DB
+                    var lastCode = db.LOAIHANGs
+                                    .Where(l => l.MALOAI.StartsWith("C"))
+                                    .OrderByDescending(l => l.MALOAI)
+                                    .Select(l => l.MALOAI)
+                                    .FirstOrDefault();
+
+                    if (lastCode == null)
+                    {
+                        lOAIHANG.MALOAI = "C000";
+                    }
+                    else
+                    {
+                        // Tăng số thứ tự lên
+                        int number = int.Parse(lastCode.Substring(1)) + 1;
+                        lOAIHANG.MALOAI = $"C{number:D3}";
+                    }
+                }
+
                 db.LOAIHANGs.Add(lOAIHANG);
                 db.SaveChanges();
                 return RedirectToAction("Index");
@@ -84,7 +86,7 @@ namespace TapHoa.Controllers
             return View(lOAIHANG);
         }
 
-        // GET: LOAIHANGs/Edit/5
+
         public ActionResult Edit(string id)
         {
             if (id == null)
@@ -99,9 +101,6 @@ namespace TapHoa.Controllers
             return View(lOAIHANG);
         }
 
-        // POST: LOAIHANGs/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "MALOAI,TENLOAI")] LOAIHANG lOAIHANG)
@@ -115,7 +114,6 @@ namespace TapHoa.Controllers
             return View(lOAIHANG);
         }
 
-        // GET: LOAIHANGs/Delete/5
         public ActionResult Delete(string id)
         {
             if (id == null)
@@ -130,7 +128,6 @@ namespace TapHoa.Controllers
             return View(lOAIHANG);
         }
 
-        // POST: LOAIHANGs/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(string id)

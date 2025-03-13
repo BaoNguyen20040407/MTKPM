@@ -6,13 +6,15 @@ using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using TapHoa.Models;
+using TapHoa.Singleton;
 
 namespace TapHoa.Controllers
 {
     public class UserController : Controller
     {
-        // GET: User
-        private TapHoaEntities db = new TapHoaEntities();
+        // Sử dụng Singleton thay vì tạo mới TapHoaEntities
+        private readonly TapHoaEntities db = DbSingleton.Instance;
+
         // GET: Account
         public ActionResult Index()
         {
@@ -22,6 +24,8 @@ namespace TapHoa.Controllers
         {
             return View();
         }
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "MANV,HOTEN,DCHI,SDT,TENDANGNHAP,MATKHAU")] NHANVIEN nhanvien)

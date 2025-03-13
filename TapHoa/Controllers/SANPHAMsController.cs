@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
 using System.IO;
@@ -15,22 +14,25 @@ namespace TapHoa.Controllers
     public class SANPHAMsController : Controller
     {
         private TapHoaEntities db = new TapHoaEntities();
-        
+        private readonly IImageHandler _imageHandler;
+        public SANPHAMsController()
+        {
+            _imageHandler = new ImageCompressionDecorator(
+                                new ImageRenameDecorator(
+                                    new BaseImageHandler()
+                                )
+                            );
+        }
+
         // GET: SANPHAMs
-        //public ActionResult Index()
-        //{
-        //    var sANPHAMs = db.SANPHAMs.Include(s => s.DVT).Include(s => s.LOAIHANG);
-        //    return View(sANPHAMs.ToList());
-        //}
         public async Task<ActionResult> Index(string searchString)
         {
             if (db.SANPHAMs == null)
             {
-                return Content("Khong tim thay nhan vien co dia chi nay");
+                return Content("Không tìm thấy sản phẩm.");
             }
 
-            var sanpham = from e in db.SANPHAMs
-                          select e;
+            var sanpham = from e in db.SANPHAMs select e;
             if (!String.IsNullOrEmpty(searchString))
             {
                 sanpham = sanpham.Where(a => a.TENSP.Contains(searchString));
@@ -46,39 +48,39 @@ namespace TapHoa.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            SANPHAM sANPHAM = db.SANPHAMs.Find(id);
-            if (sANPHAM == null)
+            SANPHAM sanpham = db.SANPHAMs.Find(id);
+            if (sanpham == null)
             {
                 return HttpNotFound();
             }
-            return View(sANPHAM);
+            return View(sanpham);
         }
-        private string GenerateNewMADVT()
+
+        private string GenerateNewMASP()
         {
-            var a = db.SANPHAMs.OrderByDescending(d => d.MASP).FirstOrDefault();
-            if (a == null)
+            var lastProduct = db.SANPHAMs.OrderByDescending(d => d.MASP).FirstOrDefault();
+            if (lastProduct == null)
             {
-                return "A000"; // Nếu chưa có mã nào trong cơ sở dữ liệu
+                return "A000";
             }
 
-            string b = a.MASP;
-            char letterPart = b[0];
-            int numericPart = int.Parse(b.Substring(1));
+            string lastId = lastProduct.MASP;
+            char letterPart = lastId[0];
+            int numericPart = int.Parse(lastId.Substring(1)) + 1;
 
-            numericPart++;
             if (numericPart > 999)
             {
                 numericPart = 0;
                 letterPart++;
                 if (letterPart > 'Z')
                 {
-                    throw new InvalidOperationException("Đã hết mã để sử dụng.");
+                    throw new InvalidOperationException("Hết mã sản phẩm.");
                 }
             }
 
-            string newMADVT = letterPart + numericPart.ToString("D3"); // Đảm bảo có 3 chữ số
-            return newMADVT;
+            return letterPart + numericPart.ToString("D3");
         }
+
         // GET: SANPHAMs/Create
         public ActionResult Create()
         {
@@ -88,39 +90,34 @@ namespace TapHoa.Controllers
         }
 
         // POST: SANPHAMs/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,SOLUONGDABAN,HINHANH,MALOAI")] SANPHAM sANPHAM, HttpPostedFileBase HINHANH)
+        public ActionResult Create([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,MALOAI")] SANPHAM sanpham, HttpPostedFileBase HINHANH)
         {
-            if (sANPHAM.SOLUONG < 0)
+            if (sanpham.SOLUONG < 0)
             {
                 ModelState.AddModelError("SOLUONG", "Số lượng không được âm.");
             }
+
             if (ModelState.IsValid)
             {
-                sANPHAM.MASP = GenerateNewMADVT();
-                sANPHAM.SOLUONGDABAN = 0;
+                sanpham.MASP = GenerateNewMASP();
+                sanpham.SOLUONGDABAN = 0;
+
+                // Xử lý ảnh bằng Decorator
                 if (HINHANH != null)
                 {
-                    var filename = Path.GetFileName(HINHANH.FileName);
-
-                    
-                    var path = Path.Combine(Server.MapPath("~/Images"), filename);
-
-                    sANPHAM.HINHANH = filename;
-
-                    HINHANH.SaveAs(path);
+                    sanpham.HINHANH = _imageHandler.ProcessImage(HINHANH, sanpham.MASP);
                 }
-                db.SANPHAMs.Add(sANPHAM);
+
+                db.SANPHAMs.Add(sanpham);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
 
-            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sANPHAM.MADVT);
-            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sANPHAM.MALOAI);
-            return View(sANPHAM);
+            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
+            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
+            return View(sanpham);
         }
 
         // GET: SANPHAMs/Edit/5
@@ -130,70 +127,52 @@ namespace TapHoa.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            SANPHAM sANPHAM = db.SANPHAMs.Find(id);
-            if (sANPHAM == null)
+            SANPHAM sanpham = db.SANPHAMs.Find(id);
+            if (sanpham == null)
             {
                 return HttpNotFound();
             }
-            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sANPHAM.MADVT);
-            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sANPHAM.MALOAI);
-            return View(sANPHAM);
+            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
+            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
+            return View(sanpham);
         }
 
         // POST: SANPHAMs/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,SOLUONGDABAN,HINHANH,MALOAI")] SANPHAM sANPHAM, HttpPostedFileBase HinhAnh)
+        public ActionResult Edit([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,MALOAI,HINHANH")] SANPHAM sanpham, HttpPostedFileBase HinhAnh)
         {
-            if (sANPHAM.SOLUONG < 0)
+            if (sanpham.SOLUONG < 0)
             {
                 ModelState.AddModelError("SOLUONG", "Số lượng không được âm.");
             }
+
             if (ModelState.IsValid)
             {
-                var sanpham = db.SANPHAMs.FirstOrDefault(p => p.MASP == sANPHAM.MASP);
-                if(sanpham != null)
+                var existingProduct = db.SANPHAMs.FirstOrDefault(p => p.MASP == sanpham.MASP);
+                if (existingProduct != null)
                 {
-                    sanpham.TENSP = sANPHAM.TENSP;
-                    sanpham.GIAHIENHANH = sANPHAM.GIAHIENHANH;
-                    sanpham.SOLUONG = sANPHAM.SOLUONG;
-                    sanpham.SOLUONGDABAN = sANPHAM.SOLUONGDABAN;
-                    sanpham.MADVT = sANPHAM.MADVT;
-                    sanpham.MALOAI = sANPHAM.MALOAI;
-                    if(HinhAnh != null)
+                    existingProduct.TENSP = sanpham.TENSP;
+                    existingProduct.GIAHIENHANH = sanpham.GIAHIENHANH;
+                    existingProduct.SOLUONG = sanpham.SOLUONG;
+                    existingProduct.MADVT = sanpham.MADVT;
+                    existingProduct.MALOAI = sanpham.MALOAI;
+
+                    if (HinhAnh != null)
                     {
-                        var filename = Path.GetFileName(HinhAnh.FileName);
-                        var path = Path.Combine(Server.MapPath("~/Images"), filename);
-                        sanpham.HINHANH = filename;
-                        HinhAnh.SaveAs(path);
+                        existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
                     }
                 }
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sANPHAM.MADVT);
-            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sANPHAM.MALOAI);
-            return View(sANPHAM);
+
+            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
+            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
+            return View(sanpham);
         }
 
-        // GET: SANPHAMs/Delete/5
-        public ActionResult Delete(string id)
-        {
-            if (id == null)
-            {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            }
-            SANPHAM sANPHAM = db.SANPHAMs.Find(id);
-            if (sANPHAM == null)
-            {
-                return HttpNotFound();
-            }
-            return View(sANPHAM);
-        }
-
-        // POST: SANPHAMs/Delete/5
+        // DELETE: SANPHAMs/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(string id)
@@ -207,7 +186,7 @@ namespace TapHoa.Controllers
             }
             catch
             {
-                return Content("Không xóa được do có liên quan đến bảng khác");
+                return Content("Không xóa được do có liên quan đến bảng khác.");
             }
         }
 
