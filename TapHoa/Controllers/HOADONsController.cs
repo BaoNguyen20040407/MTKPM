@@ -121,16 +121,40 @@ namespace TapHoa.Controllers
             return View(hOADON);
         }
 
-        // POST: HOADONs/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int? id)
         {
-            HOADON hOADON = db.HOADONs.Find(id);
-            db.HOADONs.Remove(hOADON);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            using (var transaction = db.Database.BeginTransaction())
+            {
+                try
+                {
+                    // 1️⃣ Tìm và xóa tất cả chi tiết hóa đơn liên quan
+                    var chiTietHoaDon = db.CTHDs.Where(ct => ct.SOHD == id).ToList();
+                    db.CTHDs.RemoveRange(chiTietHoaDon);
+
+                    // 2️⃣ Xóa hóa đơn chính
+                    HOADON hOADON = db.HOADONs.Find(id);
+                    if (hOADON != null)
+                    {
+                        db.HOADONs.Remove(hOADON);
+                    }
+
+                    // 3️⃣ Lưu thay đổi vào database
+                    db.SaveChanges();
+                    transaction.Commit();
+
+                    return RedirectToAction("Index");
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    ModelState.AddModelError("", "Lỗi khi xóa hóa đơn: " + ex.Message);
+                    return View();
+                }
+            }
         }
+
 
         public ActionResult ExportToExcel(DateTime? startDate, DateTime? endDate)
         {
@@ -139,7 +163,9 @@ namespace TapHoa.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "Ngày bắt đầu và ngày kết thúc là bắt buộc.");
             }
 
-            // Thêm thời gian để đảm bảo lấy được các hóa đơn trong suốt cả ngày cuối cùng
+            // Thêm LicenseContext để tránh lỗi LicenseException
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
             var endDateWithTime = endDate.Value.AddDays(1).AddTicks(-1);
 
             var invoices = db.HOADONs
@@ -151,20 +177,19 @@ namespace TapHoa.Controllers
             {
                 var worksheet = package.Workbook.Worksheets.Add("Invoices");
 
-                // Add header
+                // Thêm tiêu đề cột
                 worksheet.Cells[1, 1].Value = "Số HD";
                 worksheet.Cells[1, 2].Value = "Ngày tạo";
                 worksheet.Cells[1, 3].Value = "Nhân viên tạo";
                 worksheet.Cells[1, 4].Value = "Tổng số lượng";
                 worksheet.Cells[1, 5].Value = "Tổng tiền";
                 worksheet.Cells[1, 6].Value = "Số tiền phải trả";
-                worksheet.Cells[1, 7].Value = "Số tiền thói";
+                worksheet.Cells[1, 7].Value = "Số tiền thối";
                 worksheet.Cells[1, 8].Value = "Mã SP";
                 worksheet.Cells[1, 9].Value = "Tên SP";
                 worksheet.Cells[1, 10].Value = "Số lượng";
                 worksheet.Cells[1, 11].Value = "Đơn giá";
 
-                // Add values
                 var rowIndex = 2;
                 decimal totalAmount = 0;
                 int totalQuantity = 0;
@@ -192,7 +217,7 @@ namespace TapHoa.Controllers
                         rowIndex++;
                     }
 
-                    // Merge invoice cells for multi-row invoices
+                    // Merge các ô nếu hóa đơn có nhiều sản phẩm
                     if (invoice.CTHDs.Count > 1)
                     {
                         worksheet.Cells[invoiceStartRow, 1, rowIndex - 1, 1].Merge = true;
@@ -205,14 +230,14 @@ namespace TapHoa.Controllers
                     }
                 }
 
-                // Add total row
+                // Thêm hàng tổng cộng
                 worksheet.Cells[rowIndex, 1].Value = "Tổng cộng";
                 worksheet.Cells[rowIndex, 1, rowIndex, 3].Merge = true;
                 worksheet.Cells[rowIndex, 4].Value = totalQuantity;
                 worksheet.Cells[rowIndex, 5].Value = totalAmount;
                 worksheet.Cells[rowIndex, 1, rowIndex, 11].Style.Font.Bold = true;
 
-                // Format the header
+                // Định dạng header
                 using (var range = worksheet.Cells[1, 1, 1, 11])
                 {
                     range.Style.Font.Bold = true;
@@ -226,6 +251,7 @@ namespace TapHoa.Controllers
                 return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Invoices.xlsx");
             }
         }
+
 
 
         protected override void Dispose(bool disposing)

@@ -11,129 +11,85 @@ namespace TapHoa.Controllers
 {
     public class DVTController : Controller
     {
-        private TapHoaEntities db = new TapHoaEntities();
-        // GET: DVT
+        private readonly TapHoaEntities _db = new TapHoaEntities();
+
+        //Khai báo Invoker để thực hiện Command Pattern
+        private readonly Invoker _invoker = new Invoker();
+
         public ActionResult Index()
         {
-            return View(db.DVTs.ToList());
+            return View(_db.DVTs.ToList());
         }
 
-        // GET: DVT/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
-
-        // GET: DVT/Create
         public ActionResult Create()
         {
             return View();
         }
 
-        // POST: DVT/Create
-        private string GenerateNewMADVT()
-        {
-            var lastDVT = db.DVTs.OrderByDescending(d => d.MADVT).FirstOrDefault();
-            if (lastDVT == null)
-            {
-                return "A000"; // Nếu chưa có mã nào trong cơ sở dữ liệu
-            }
-
-            string lastMADVT = lastDVT.MADVT;
-            char letterPart = lastMADVT[0];
-            int numericPart = int.Parse(lastMADVT.Substring(1));
-
-            numericPart++;
-            if (numericPart > 999)
-            {
-                numericPart = 0;
-                letterPart++;
-                if (letterPart > 'Z')
-                {
-                    throw new InvalidOperationException("Đã hết mã để sử dụng.");
-                }
-            }
-
-            string newMADVT = letterPart + numericPart.ToString("D3"); // Đảm bảo có 3 chữ số
-            return newMADVT;
-        }
-
-
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "MADVT,TENDVT")] DVT donvitinh)
+        public ActionResult Create([Bind(Include = "TENDVT")] DVT dvt)
         {
             if (ModelState.IsValid)
             {
-                donvitinh.MADVT = GenerateNewMADVT();
-                db.DVTs.Add(donvitinh);
-                db.SaveChanges();
+                //Sử dụng Command Pattern
+                var command = new CreateDVTCommand(_db, dvt);
+                _invoker.SetCommand(command);
+                _invoker.ExecuteCommand();
                 return RedirectToAction("Index");
             }
-
-            return View(donvitinh);
+            return View(dvt);
         }
 
-        // GET: DVT/Edit/5
-        public ActionResult Edit(String id)
+        public ActionResult Edit(string id)
         {
             if (id == null)
-            {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            }
-            DVT donvitinh = db.DVTs.Find(id);
-            if (donvitinh == null)
-            {
+            var dvt = _db.DVTs.Find(id);
+            if (dvt == null)
                 return HttpNotFound();
-            }
-            return View(donvitinh);
+            return View(dvt);
         }
 
-        // POST: DVT/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "MADVT,TENDVT")] DVT donvitinh)
+        public ActionResult Edit([Bind(Include = "MADVT,TENDVT")] DVT dvt)
         {
-            if(ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                db.Entry(donvitinh).State = EntityState.Modified;
-                db.SaveChanges();
+                //Sử dụng Command Pattern
+                var command = new EditDVTCommand(_db, dvt);
+                _invoker.SetCommand(command);
+                _invoker.ExecuteCommand();
                 return RedirectToAction("Index");
             }
-            return View(donvitinh);
+            return View(dvt);
         }
 
-        // GET: DVT/Delete/5
-        public ActionResult Delete(String id)
+        public ActionResult Delete(string id)
         {
             if (id == null)
-            {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
-            }
-            DVT donvitinh = db.DVTs.Find(id);
-            if (donvitinh == null)
-            {
+            var dvt = _db.DVTs.Find(id);
+            if (dvt == null)
                 return HttpNotFound();
-            }
-            return View(donvitinh);
+            return View(dvt);
         }
 
-        // POST: DVT/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(String id)
+        public ActionResult DeleteConfirmed(string id)
         {
-
             try
             {
-                DVT donvitinh = db.DVTs.Find(id);
-                db.DVTs.Remove(donvitinh);
-                db.SaveChanges();
+                var command = new DeleteDVTCommand(_db, id);
+                _invoker.SetCommand(command);
+                _invoker.ExecuteCommand();
                 return RedirectToAction("Index");
             }
             catch
             {
-                return Content("Không xóa được do có liên quan đến bảng khác");
+                return Content("Không thể xóa do liên quan đến bảng khác");
             }
         }
 
@@ -141,7 +97,7 @@ namespace TapHoa.Controllers
         {
             if (disposing)
             {
-                db.Dispose();
+                _db.Dispose();
             }
             base.Dispose(disposing);
         }

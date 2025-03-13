@@ -12,137 +12,103 @@ using TapHoa.Models;
 
 namespace TapHoa.Controllers
 {
+    [RoutePrefix("banhang")]
     public class BanHangController : Controller
     {
-        private TapHoaEntities db = new TapHoaEntities();
-        public async Task<ActionResult> Index(string searchString)
+        private readonly TapHoaEntities _db;
+
+        //Khai báo để sử dụng Repository Pattern.
+        private readonly HoaDonRepository _hoaDonRepo;
+
+        //Khai báo để sử dụng Factory Method Pattern.
+        private readonly IHoaDonFactory _hoaDonFactory;
+
+        public BanHangController()
         {
-            if (db.SANPHAMs == null)
-            {
-                return Content("Khong tim thay nhan vien co dia chi nay");
-            }
-
-            var sanpham = from e in db.SANPHAMs
-                          select e;
-            if (!String.IsNullOrEmpty(searchString))
-            {
-                sanpham = sanpham.Where(a => a.TENSP.Contains(searchString));
-            }
-
-            return View(await sanpham.ToListAsync());
+            _db = new TapHoaEntities();
+            _hoaDonRepo = new HoaDonRepository(_db);
+            _hoaDonFactory = new HoaDonFactory();
         }
 
-        [HttpPost]
+        [HttpGet, Route("index")]
+        public async Task<ActionResult> Index(string searchString)
+        {
+            var sanphams = _db.SANPHAMs.AsQueryable();
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                sanphams = sanphams.Where(sp => sp.TENSP.Contains(searchString));
+            }
+            return View(await sanphams.ToListAsync());
+        }
+
+        [HttpPost, Route("create-order")]
         public ActionResult CreateOrder(OrderData orderData)
         {
-            if (orderData.SanPhams == null || !orderData.SanPhams.Any())
+            if (orderData?.SanPhams == null || !orderData.SanPhams.Any())
             {
                 return Json(new { success = false, message = "Không có sản phẩm nào được chọn." });
             }
 
             try
             {
-                using (var db = new TapHoaEntities())
+                var nhanVien = Session["NHANVIEN"] as NHANVIEN;
+                var admin = Session["ADMIN"] as ADMIN;
+
+                if (nhanVien == null && admin == null)
                 {
-                    // Kiểm tra người dùng hiện tại
-                    var nhanVien = Session["NHANVIEN"] as NHANVIEN;
-                    var admin = Session["ADMIN"] as ADMIN; // Giả sử bạn có một bảng và session cho admin
+                    return Json(new { success = false, message = "Người dùng không hợp lệ." });
+                }
 
-                    if (nhanVien == null && admin == null)
+                string manv = admin != null ? "A000" : nhanVien.MANV;
+                var hoaDon = _hoaDonFactory.CreateHoaDon(manv, orderData); //Factory Method Pattern
+                _hoaDonRepo.AddHoaDon(hoaDon); //Dùng repository để tạo hóa đơn trong DB
+                int sohd = hoaDon.SOHD;
+
+                foreach (var sp in orderData.SanPhams)
+                {
+                    var sanPhamDb = _db.SANPHAMs.FirstOrDefault(p => p.MASP == sp.IdSanPham);
+                    if (sanPhamDb != null)
                     {
-                        return Json(new { success = false, message = "Người dùng không hợp lệ." });
+                        sanPhamDb.SOLUONGDABAN += sp.SoLuong;
+                        sanPhamDb.SOLUONG -= sp.SoLuong;
+
+                        var chiTiet = _hoaDonFactory.CreateChiTietHoaDon(sohd, sp); //Factory Method Pattern
+                        _db.CTHDs.Add(chiTiet);
                     }
+                }
 
-                    // Xác định MANV dựa trên việc người dùng là nhân viên hay admin
-                    string manv;
-                    if (admin != null)
-                    {
-                        manv = "A000"; // Chuyển đổi ID của admin thành chuỗi
-                    }
-                    else
-                    {
-                        manv = nhanVien.MANV;
-                        System.Diagnostics.Debug.WriteLine($"Nhân viên ID: {manv}");
-                    }
-
-                    // Tạo đơn hàng mới
-                    HOADON donHang = new HOADON
-                    {
-                        MANV = manv,
-                        NGHD = DateTime.Now,
-                        TONGTIEN = orderData.SanPhams.Sum(sp => sp.Gia * sp.SoLuong),
-                        TONGSL = orderData.SanPhams.Sum(sp => sp.SoLuong),
-                        PHAITRA = orderData.PhaiTra,
-                        TIENTRALAI = orderData.TienTraLai
-                    };
-
-                    db.HOADONs.Add(donHang);
-                    db.SaveChanges();
-
-                    // Lưu thông tin các sản phẩm vào chi tiết đơn hàng
-                    foreach (var sp in orderData.SanPhams)
-                    {
-                        var sanPhamDb = db.SANPHAMs.FirstOrDefault(p => p.MASP == sp.IdSanPham);
-                        if (sanPhamDb != null)
-                        {
-                            sanPhamDb.SOLUONGDABAN += sp.SoLuong;
-                            sanPhamDb.SOLUONG -= sp.SoLuong;
-
-                            CTHD chitiet = new CTHD
-                            {
-                                SOHD = donHang.SOHD,
-                                MASP = sp.IdSanPham,
-                                SL = sp.SoLuong,
-                                DONGIA = sp.Gia
-                            };
-
-                            db.CTHDs.Add(chitiet);
-                        }
-                    }
-
-                   
-
-                    db.SaveChanges();
-                    return Json(new { success = true, message = "Đơn hàng đã được tạo thành công.", orderId = donHang.SOHD });
-                }            
+                _db.SaveChanges();
+                return Json(new { success = true, message = "Đơn hàng đã được tạo thành công.", orderId = sohd });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
                 return Json(new { success = false, message = "Đã có lỗi xảy ra: " + ex.Message });
             }
         }
 
-        [HttpGet]
+        [HttpGet, Route("print-receipt/{orderId}")]
         public ActionResult PrintReceipt(int orderId)
         {
-            using (var db = new TapHoaEntities())
+            var order = _db.HOADONs.Include(h => h.CTHDs.Select(ct => ct.SANPHAM)).FirstOrDefault(o => o.SOHD == orderId);
+            if (order == null)
             {
-                var order = db.HOADONs.Include("CTHDs.SANPHAM").FirstOrDefault(o => o.SOHD == orderId);
-                if (order == null)
-                {
-                    return HttpNotFound();
-                }
+                return HttpNotFound("Không tìm thấy hóa đơn.");
+            }
 
-                MemoryStream stream = new MemoryStream();
-
-                Rectangle pageSize = new Rectangle(226, 400);
-                Document document = new Document(pageSize, 10, 10, 10, 10);
-
-                //Document document = new Document(PageSize.A4, 10, 10, 10, 10);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Document document = new Document(new Rectangle(226, 400), 10, 10, 10, 10);
                 PdfWriter.GetInstance(document, stream).CloseStream = false;
                 document.Open();
-
 
                 string fontPath = Server.MapPath("~/assets/fonts/Roboto-Regular.ttf");
                 BaseFont baseFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
                 Font font = new Font(baseFont, 12, Font.NORMAL);
 
-
                 document.Add(new Paragraph("Hóa đơn bán hàng", font));
                 document.Add(new Paragraph($"Mã đơn hàng: {order.SOHD}", font));
                 document.Add(new Paragraph($"Ngày: {order.NGHD}", font));
-                document.Add(new Paragraph($"Nhân viên: {order.NHANVIEN.HOTEN}", font));
+                document.Add(new Paragraph($"Nhân viên: {order.NHANVIEN?.HOTEN ?? "Không rõ"}", font));
                 document.Add(new Paragraph(""));
 
                 foreach (var item in order.CTHDs)
@@ -155,11 +121,8 @@ namespace TapHoa.Controllers
                 document.Add(new Paragraph($"Tiền thối: {order.TIENTRALAI} VND", font));
 
                 document.Close();
-                byte[] pdfBytes = stream.ToArray();
-
-                return File(pdfBytes, "application/pdf", "hoa_don.pdf");
+                return File(stream.ToArray(), "application/pdf", "hoa_don.pdf");
             }
         }
-
     }
 }
