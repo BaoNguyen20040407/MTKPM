@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
+using TapHoa.Controllers.Observer;
 using TapHoa.Models;
 using TapHoa.Singleton;
 
@@ -30,6 +31,7 @@ namespace TapHoa.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "MANV,HOTEN,DCHI,SDT,TENDANGNHAP,MATKHAU")] NHANVIEN nhanvien)
         {
+            NotifySubject notifySubject = new NotifySubject();
             if (db.NHANVIENs.Any(x => x.SDT == nhanvien.SDT))
             {
                 ModelState.AddModelError("SDT", "Số điện thoại đã được sử dụng. Vui lòng sử dụng số khác.");
@@ -47,6 +49,7 @@ namespace TapHoa.Controllers
                 nhanvien.MANV = GenerateNewMANV();
                 db.NHANVIENs.Add(nhanvien);
                 db.SaveChanges();
+                notifySubject.Register(new NhanVienObserve(nhanvien));
                 return RedirectToAction("Index");
             }
 
