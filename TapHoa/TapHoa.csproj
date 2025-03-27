@@ -183,6 +183,8 @@
     <Compile Include="Controllers\Strategy\IChoice.cs" />
     <Compile Include="Controllers\Strategy\SecondChoice.cs" />
     <Compile Include="Controllers\UserController.cs" />
+    <Compile Include="Controllers\Visitor\IVisitor.cs" />
+    <Compile Include="Controllers\Visitor\Visitor.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -706,7 +708,6 @@
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Controllers\Proxy\" />
-    <Folder Include="Controllers\Visitor\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
