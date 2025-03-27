@@ -141,45 +141,37 @@ namespace TapHoa.Controllers
         // POST: SANPHAMs/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,MALOAI,HINHANH")] SANPHAM sanpham, NHANVIEN nhanvien, HttpPostedFileBase HinhAnh)
+        public ActionResult Edit([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,MALOAI,HINHANH")] SANPHAM sanpham, HttpPostedFileBase HinhAnh)
         {
-            if (nhanvien.HOTEN != "admin")
+            NotifySubject notifySubject = new NotifySubject();
+            if (sanpham.SOLUONG < 0)
             {
-                return Content("<script language='javascript' type='text/javascript'>alert('Merchant on Hold');</script>");
+                ModelState.AddModelError("SOLUONG", "Số lượng không được âm.");
             }
-            else
+            if (ModelState.IsValid)
             {
-                NotifySubject notifySubject = new NotifySubject();
-                if (sanpham.SOLUONG < 0)
+                var existingProduct = db.SANPHAMs.FirstOrDefault(p => p.MASP == sanpham.MASP);
+                if (existingProduct != null)
                 {
-                    ModelState.AddModelError("SOLUONG", "Số lượng không được âm.");
-                }
+                    existingProduct.TENSP = sanpham.TENSP;
+                    existingProduct.GIAHIENHANH = sanpham.GIAHIENHANH;
+                    existingProduct.SOLUONG = sanpham.SOLUONG;
+                    existingProduct.MADVT = sanpham.MADVT;
+                    existingProduct.MALOAI = sanpham.MALOAI;
 
-                if (ModelState.IsValid)
-                {
-                    var existingProduct = db.SANPHAMs.FirstOrDefault(p => p.MASP == sanpham.MASP);
-                    if (existingProduct != null)
+                    if (HinhAnh != null)
                     {
-                        existingProduct.TENSP = sanpham.TENSP;
-                        existingProduct.GIAHIENHANH = sanpham.GIAHIENHANH;
-                        existingProduct.SOLUONG = sanpham.SOLUONG;
-                        existingProduct.MADVT = sanpham.MADVT;
-                        existingProduct.MALOAI = sanpham.MALOAI;
-
-                        if (HinhAnh != null)
-                        {
-                            existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
-                        }
+                        existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
                     }
-                    notifySubject.Notify(existingProduct);
-                    db.SaveChanges();
-                    return RedirectToAction("Index");
                 }
-
-                ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
-                ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
-                return View(sanpham);
+                notifySubject.Notify(existingProduct);
+                db.SaveChanges();
+                return RedirectToAction("Index");
             }
+
+            ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
+            ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
+            return View(sanpham);
         }
 
         // DELETE: SANPHAMs/Delete/5

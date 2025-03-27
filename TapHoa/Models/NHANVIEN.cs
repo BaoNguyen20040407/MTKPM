@@ -26,8 +26,13 @@ namespace TapHoa.Models
         public string SDT { get; set; }
         public string TENDANGNHAP { get; set; }
         public string MATKHAU { get; set; }
-    
+        public List<string> notifications = new List<string>();
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<HOADON> HOADONs { get; set; }
+        public void addNotify(string notify)
+        {
+            this.notifications.Add(notify);
+        }
     }
 }

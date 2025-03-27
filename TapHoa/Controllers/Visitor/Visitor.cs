@@ -1,6 +1,4 @@
-﻿using Microsoft.Analytics.Interfaces;
-using Microsoft.Analytics.Types.Sql;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +12,7 @@ namespace TapHoa.Controllers.Visitor
         public void Visit(SANPHAM sanpham)
         {
             Console.WriteLine("Visitor visited " + sanpham.GetType().Name);
+            sanpham.SOLUONG = 0;
         }
     }
 }
