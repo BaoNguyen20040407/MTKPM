@@ -9,10 +9,22 @@ namespace TapHoa.Controllers.Memento
 {
     public class Memento
     {
+        private string maNv;
+        private string hoTen;
+        private string dChi;
+        private string sdt;
+        private string tenDangNhap;
+        private string matKhau;
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public Memento()
+        public Memento(string maNv, string hoTen, string dChi, string sdt, string tenDangNhap, string matKhau)
         {
             this.HOADONs = new HashSet<HOADON>();
+            this.maNv = maNv;
+            this.hoTen = hoTen;
+            this.dChi = dChi;
+            this.sdt = sdt;
+            this.tenDangNhap = tenDangNhap;
+            this.matKhau = matKhau;
         }
 
         public string MANV { get; set; }
