@@ -15,7 +15,7 @@
                     <div class="content table-responsive table-full-width">
                         <table class="table table-hover table-striped">
                             <tbody>
-                                @if (nhanvien.notifications != null)
+                                @if (admin == null && nhanvien.notifications != null)
                                 {
                                     foreach (var item in nhanvien.notifications)
                                     {

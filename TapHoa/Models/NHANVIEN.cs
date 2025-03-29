@@ -11,6 +11,7 @@ namespace TapHoa.Models
 {
     using System;
     using System.Collections.Generic;
+    using TapHoa.Controllers.Memento;
 
     public partial class NHANVIEN
     {
@@ -33,6 +34,14 @@ namespace TapHoa.Models
         public void addNotify(string notify)
         {
             this.notifications.Add(notify);
+        }
+        public Memento Save(NHANVIEN nhanvien)
+        {
+            return new Memento(nhanvien.MANV, nhanvien.HOTEN, nhanvien.DCHI, nhanvien.SDT, nhanvien.TENDANGNHAP, nhanvien.MATKHAU);
+        }
+        public void RestoreStatus(Memento memento)
+        {
+
         }
     }
 }
