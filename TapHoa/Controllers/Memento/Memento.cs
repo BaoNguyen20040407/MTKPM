@@ -27,12 +27,30 @@ namespace TapHoa.Controllers.Memento
             this.matKhau = matKhau;
         }
 
-        public string MANV { get; set; }
-        public string HOTEN { get; set; }
-        public string DCHI { get; set; }
-        public string SDT { get; set; }
-        public string TENDANGNHAP { get; set; }
-        public string MATKHAU { get; set; }
+        public string MANV() 
+        { 
+            return maNv;
+        }
+        public string HOTEN()
+        {
+            return hoTen;
+        }
+        public string DCHI()
+        {
+            return dChi;
+        }
+        public string SDT()
+        {
+            return sdt;
+        }
+        public string TENDANGNHAP()
+        {
+            return tenDangNhap;
+        }
+        public string MATKHAU()
+        {
+            return matKhau;
+        }
         public List<string> notifications = new List<string>();
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
+using TapHoa.Controllers.Memento;
 using TapHoa.Controllers.Observer;
 using TapHoa.Models;
 using TapHoa.Singleton;
@@ -15,6 +16,8 @@ namespace TapHoa.Controllers
     {
         // Sử dụng Singleton thay vì tạo mới TapHoaEntities
         private readonly TapHoaEntities db = DbSingleton.Instance;
+        CareTaker careTaker = new CareTaker();
+        NotifySubject notifySubject = new NotifySubject();
 
         // GET: Account
         public ActionResult Index()
@@ -31,7 +34,6 @@ namespace TapHoa.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "MANV,HOTEN,DCHI,SDT,TENDANGNHAP,MATKHAU")] NHANVIEN nhanvien)
         {
-            NotifySubject notifySubject = new NotifySubject();
             if (db.NHANVIENs.Any(x => x.SDT == nhanvien.SDT))
             {
                 ModelState.AddModelError("SDT", "Số điện thoại đã được sử dụng. Vui lòng sử dụng số khác.");
@@ -50,6 +52,7 @@ namespace TapHoa.Controllers
                 db.NHANVIENs.Add(nhanvien);
                 db.SaveChanges();
                 notifySubject.Register(new NhanVienObserve(nhanvien));
+                careTaker.Add(nhanvien.Save());
                 return RedirectToAction("Index");
             }
 
@@ -103,9 +106,17 @@ namespace TapHoa.Controllers
             {
                 db.Entry(nhanvien).State = EntityState.Modified;
                 db.SaveChanges();
+                careTaker.Add(nhanvien.Save());
                 return RedirectToAction("Index");
             }
             return View(nhanvien);
+        }
+
+        public void RecoverStatus(String id)
+        {
+            NHANVIEN nhanvien = db.NHANVIENs.Find(id);
+            nhanvien.RestoreStatus(careTaker.GetLast());
+            db.SaveChanges();
         }
 
         // GET: DVT/Delete/5

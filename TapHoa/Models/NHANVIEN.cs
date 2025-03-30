@@ -35,13 +35,18 @@ namespace TapHoa.Models
         {
             this.notifications.Add(notify);
         }
-        public Memento Save(NHANVIEN nhanvien)
+        public Memento Save()
         {
-            return new Memento(nhanvien.MANV, nhanvien.HOTEN, nhanvien.DCHI, nhanvien.SDT, nhanvien.TENDANGNHAP, nhanvien.MATKHAU);
+            return new Memento(MANV, HOTEN, DCHI, SDT, TENDANGNHAP, MATKHAU);
         }
         public void RestoreStatus(Memento memento)
         {
-
+            MANV = memento.MANV();
+            HOTEN = memento.HOTEN();
+            DCHI = memento.DCHI();
+            SDT = memento.SDT();
+            TENDANGNHAP = memento.TENDANGNHAP();
+            MATKHAU = memento.MATKHAU();
         }
     }
 }
