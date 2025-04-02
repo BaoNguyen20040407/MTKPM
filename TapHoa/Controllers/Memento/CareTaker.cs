@@ -9,9 +9,11 @@ namespace TapHoa.Controllers.Memento
     public class CareTaker
     {
         private List<Memento> mementos = new List<Memento>();
-        public void Add(Memento memento)
+        public int count = 0;
+        public void AddMemento(Memento memento)
         {
             mementos.Add(memento);
+            count++;
         }
         public Memento Get(int index)
         {
@@ -19,8 +21,11 @@ namespace TapHoa.Controllers.Memento
         }
         public Memento GetLast()
         {
-            mementos.RemoveAt(mementos.Count - 1);
-            return mementos.Last();
+            if (count > 1)
+            {
+                count--;
+            }
+            return mementos[count - 1];
         }
     }
 }

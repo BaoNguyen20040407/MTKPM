@@ -31,22 +31,10 @@ namespace TapHoa.Models
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<HOADON> HOADONs { get; set; }
-        public void addNotify(string notify)
+
+        public void Update(SANPHAM sanPham)
         {
-            this.notifications.Add(notify);
-        }
-        public Memento Save()
-        {
-            return new Memento(MANV, HOTEN, DCHI, SDT, TENDANGNHAP, MATKHAU);
-        }
-        public void RestoreStatus(Memento memento)
-        {
-            MANV = memento.MANV();
-            HOTEN = memento.HOTEN();
-            DCHI = memento.DCHI();
-            SDT = memento.SDT();
-            TENDANGNHAP = memento.TENDANGNHAP();
-            MATKHAU = memento.MATKHAU();
+            this.notifications.Add($"Nhan vien {HOTEN} nhan thong bao san pham: {sanPham.TENSP} co su thay doi!");
         }
     }
 }

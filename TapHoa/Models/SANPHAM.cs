@@ -11,7 +11,8 @@ namespace TapHoa.Models
 {
     using System;
     using System.Collections.Generic;
-    
+    using TapHoa.Controllers.Memento;
+
     public partial class SANPHAM
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
@@ -36,5 +37,19 @@ namespace TapHoa.Models
         public virtual ICollection<CTHD> CTHDs { get; set; }
         public virtual DVT DVT { get; set; }
         public virtual LOAIHANG LOAIHANG { get; set; }
+
+        public Memento Save()
+        {
+            return new Memento(TENSP, GIAHIENHANH, SOLUONG, MADVT, MALOAI, HINHANH);
+        }
+        public void RestoreStatus(Memento memento)
+        {
+            TENSP = memento.TENSP();
+            GIAHIENHANH = memento.GIAHIENHANH();
+            SOLUONG = memento.SOLUONG();
+            MADVT = memento.MADVT();
+            MALOAI = memento.MALOAI();
+            HINHANH = memento.HINHANH();
+        }
     }
 }

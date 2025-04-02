@@ -7,6 +7,7 @@ using System.Web;
 using System.Web.Mvc;
 using TapHoa.Controllers.Memento;
 using TapHoa.Controllers.Observer;
+using TapHoa.Controllers.Singleton;
 using TapHoa.Models;
 using TapHoa.Singleton;
 
@@ -16,8 +17,7 @@ namespace TapHoa.Controllers
     {
         // Sử dụng Singleton thay vì tạo mới TapHoaEntities
         private readonly TapHoaEntities db = DbSingleton.Instance;
-        CareTaker careTaker = new CareTaker();
-        NotifySubject notifySubject = new NotifySubject();
+        NotifySubject notifySubject = ObserverSingleton.Instance;
 
         // GET: Account
         public ActionResult Index()
@@ -50,9 +50,8 @@ namespace TapHoa.Controllers
             {
                 nhanvien.MANV = GenerateNewMANV();
                 db.NHANVIENs.Add(nhanvien);
+                notifySubject.Register(nhanvien);
                 db.SaveChanges();
-                notifySubject.Register(new NhanVienObserve(nhanvien));
-                careTaker.Add(nhanvien.Save());
                 return RedirectToAction("Index");
             }
 
@@ -106,17 +105,9 @@ namespace TapHoa.Controllers
             {
                 db.Entry(nhanvien).State = EntityState.Modified;
                 db.SaveChanges();
-                careTaker.Add(nhanvien.Save());
                 return RedirectToAction("Index");
             }
             return View(nhanvien);
-        }
-
-        public void RecoverStatus(String id)
-        {
-            NHANVIEN nhanvien = db.NHANVIENs.Find(id);
-            nhanvien.RestoreStatus(careTaker.GetLast());
-            db.SaveChanges();
         }
 
         // GET: DVT/Delete/5

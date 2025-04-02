@@ -9,8 +9,8 @@ namespace TapHoa.Controllers.Observer
 {
     public interface ISubject
     {
-        void Register(IObserver observer);
-        void Unregister(IObserver observer);
+        void Register(NHANVIEN observer);
+        void Unregister(NHANVIEN observer);
         void Notify(SANPHAM sanPham);
     }
 }

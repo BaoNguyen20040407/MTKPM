@@ -180,6 +180,7 @@
     <Compile Include="Controllers\Command\Invoker.cs" />
     <Compile Include="Controllers\LOAIHANGsController.cs" />
     <Compile Include="Controllers\SANPHAMsController.cs" />
+    <Compile Include="Controllers\Singleton\ObserverSingleton.cs" />
     <Compile Include="Controllers\Strategy\Context.cs" />
     <Compile Include="Controllers\Strategy\FirstChoice.cs" />
     <Compile Include="Controllers\Strategy\IChoice.cs" />

@@ -7,7 +7,9 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using TapHoa.Controllers.Memento;
 using TapHoa.Controllers.Observer;
+using TapHoa.Controllers.Singleton;
 using TapHoa.Models;
 
 namespace TapHoa.Controllers
@@ -16,6 +18,8 @@ namespace TapHoa.Controllers
     {
         private TapHoaEntities db = new TapHoaEntities();
         private readonly IImageHandler _imageHandler;
+        NotifySubject notifySubject = ObserverSingleton.Instance;
+        CareTaker careTaker = new CareTaker();
         public SANPHAMsController()
         {
             _imageHandler = new ImageCompressionDecorator(
@@ -113,6 +117,7 @@ namespace TapHoa.Controllers
 
                 db.SANPHAMs.Add(sanpham);
                 db.SaveChanges();
+                careTaker.AddMemento(sanpham.Save());
                 return RedirectToAction("Index");
             }
 
@@ -143,7 +148,6 @@ namespace TapHoa.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "MASP,TENSP,MADVT,HANGSX,GIAHIENHANH,SOLUONG,MALOAI,HINHANH")] SANPHAM sanpham, HttpPostedFileBase HinhAnh)
         {
-            NotifySubject notifySubject = new NotifySubject();
             if (sanpham.SOLUONG < 0)
             {
                 ModelState.AddModelError("SOLUONG", "Số lượng không được âm.");
@@ -163,6 +167,7 @@ namespace TapHoa.Controllers
                     {
                         existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
                     }
+                    careTaker.AddMemento(existingProduct.Save());
                 }
                 notifySubject.Notify(existingProduct);
                 db.SaveChanges();
@@ -172,6 +177,14 @@ namespace TapHoa.Controllers
             ViewBag.MADVT = new SelectList(db.DVTs, "MADVT", "TENDVT", sanpham.MADVT);
             ViewBag.MALOAI = new SelectList(db.LOAIHANGs, "MALOAI", "TENLOAI", sanpham.MALOAI);
             return View(sanpham);
+        }
+
+        public ActionResult RecoverStatus(String id)
+        {
+            SANPHAM sanpham = db.SANPHAMs.Find(id);
+            sanpham.RestoreStatus(careTaker.GetLast());
+            db.SaveChanges();
+            return RedirectToAction("Index");
         }
 
         // DELETE: SANPHAMs/Delete/5

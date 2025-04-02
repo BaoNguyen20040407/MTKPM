@@ -6,12 +6,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using TapHoa.Models;
+using TapHoa.Singleton;
 
 namespace TapHoa.Controllers.Observer
 {
     public class NotifySubject : ISubject
     {
-        List<IObserver> observers = new List<IObserver>();
+        //List<NHANVIEN> listNv = DbSingleton.Instance.NHANVIENs.ToList();
+        List<NHANVIEN> observers = new List<NHANVIEN>();
         public void Notify(SANPHAM sanPham)
         {
             foreach (var observer in observers)
@@ -19,11 +21,12 @@ namespace TapHoa.Controllers.Observer
                 observer.Update(sanPham);
             }
         }
-        public void Register(IObserver observer)
+        public void Register(NHANVIEN observer)
         {
             observers.Add(observer);
+            //observers.AddRange(listNv);
         }
-        public void Unregister(IObserver observer)
+        public void Unregister(NHANVIEN observer)
         {
             observers.Remove(observer);
         }
