@@ -158,6 +158,7 @@
     <Compile Include="Controllers\Decorator\BaseImageHandler.cs" />
     <Compile Include="Controllers\Command\CreateDVTCommand.cs" />
     <Compile Include="Controllers\Memento\CareTaker.cs" />
+    <Compile Include="Controllers\Memento\CareTakerList.cs" />
     <Compile Include="Controllers\Memento\Memento.cs" />
     <Compile Include="Controllers\Observer\IObserver.cs" />
     <Compile Include="Controllers\Observer\ISubject.cs" />

@@ -19,7 +19,7 @@ namespace TapHoa.Controllers
         private TapHoaEntities db = new TapHoaEntities();
         private readonly IImageHandler _imageHandler;
         NotifySubject notifySubject = ObserverSingleton.Instance;
-        CareTaker careTaker = new CareTaker();
+        CareTakerList careTakers = new CareTakerList();
         public SANPHAMsController()
         {
             _imageHandler = new ImageCompressionDecorator(
@@ -117,7 +117,12 @@ namespace TapHoa.Controllers
 
                 db.SANPHAMs.Add(sanpham);
                 db.SaveChanges();
-                careTaker.AddMemento(sanpham.Save());
+                if (careTakers.Get(sanpham) == null)
+                {
+                    CareTaker careTaker = new CareTaker(sanpham);
+                    careTakers.AddCareTaker(careTaker);
+                }
+                careTakers.Get(sanpham).AddMemento(sanpham.Save());
                 return RedirectToAction("Index");
             }
 
@@ -168,7 +173,12 @@ namespace TapHoa.Controllers
                         existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
                     }
                 }
-                careTaker.AddMemento(existingProduct.Save());
+                if (careTakers.Get(sanpham) == null)
+                {
+                    CareTaker careTaker = new CareTaker(sanpham);
+                    careTakers.AddCareTaker(careTaker);
+                }
+                careTakers.Get(sanpham).AddMemento(sanpham.Save());
                 notifySubject.Notify(existingProduct, Session["NHANVIEN"] as TapHoa.Models.NHANVIEN);
                 db.SaveChanges();
                 return RedirectToAction("Index");
@@ -182,7 +192,7 @@ namespace TapHoa.Controllers
         public ActionResult RecoverStatus(String id)
         {
             SANPHAM sanpham = db.SANPHAMs.Find(id);
-            sanpham.RestoreStatus(careTaker.GetLast());
+            sanpham.RestoreStatus(careTakers.Get(sanpham).Get(0));
             db.SaveChanges();
             return RedirectToAction("Index");
         }

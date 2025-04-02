@@ -4,13 +4,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using TapHoa.Models;
+using TapHoa.Singleton;
 
 namespace TapHoa.Controllers.Memento
 {
     public class CareTakerList
     {
         private List<CareTaker> careTakers = new List<CareTaker>();
-        public CareTakerList() { }
+        private readonly TapHoaEntities db = DbSingleton.Instance;
+        public CareTakerList()
+        {
+            foreach(var item in db.SANPHAMs.ToList())
+            {
+                careTakers.Add(new CareTaker(item));
+            }
+        }
         public void AddCareTaker(CareTaker careTaker)
         {
             careTakers.Add(careTaker);

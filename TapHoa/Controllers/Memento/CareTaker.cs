@@ -11,11 +11,12 @@ namespace TapHoa.Controllers.Memento
     {
         private List<Memento> mementos = new List<Memento>();
         public SANPHAM sanPham;
-        public int count = 0;
-        //public CareTaker(SANPHAM sanpham)
-        //{
-        //    this.sanPham = sanpham;
-        //}
+        public int count = 1;
+        public CareTaker(SANPHAM sanpham)
+        {
+            this.sanPham = sanpham;
+            mementos.Add(new Memento(sanPham.TENSP, sanPham.GIAHIENHANH, sanPham.SOLUONG, sanPham.MADVT, sanPham.MALOAI, sanPham.HINHANH));
+        }
         public void AddMemento(Memento memento)
         {
             mementos.Add(memento);
@@ -27,11 +28,11 @@ namespace TapHoa.Controllers.Memento
         }
         public Memento GetLast()
         {
-            if (count > 0)
+            if (count > 1)
             {
-                count--;
+                return mementos[count - 2];
             }
-            return mementos[count];
+            return mementos[count - 1];
         }
     }
 }
