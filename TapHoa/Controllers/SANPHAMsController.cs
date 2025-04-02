@@ -167,9 +167,9 @@ namespace TapHoa.Controllers
                     {
                         existingProduct.HINHANH = _imageHandler.ProcessImage(HinhAnh, existingProduct.MASP);
                     }
-                    careTaker.AddMemento(existingProduct.Save());
                 }
-                notifySubject.Notify(existingProduct);
+                careTaker.AddMemento(existingProduct.Save());
+                notifySubject.Notify(existingProduct, Session["NHANVIEN"] as TapHoa.Models.NHANVIEN);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }

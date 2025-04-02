@@ -12,13 +12,13 @@ namespace TapHoa.Controllers.Observer
 {
     public class NotifySubject : ISubject
     {
-        //List<NHANVIEN> listNv = DbSingleton.Instance.NHANVIENs.ToList();
-        List<NHANVIEN> observers = new List<NHANVIEN>();
-        public void Notify(SANPHAM sanPham)
+        List<NHANVIEN> observers = DbSingleton.Instance.NHANVIENs.ToList();
+        //List<NHANVIEN> observers = new List<NHANVIEN>();
+        public void Notify(SANPHAM sanPham, NHANVIEN nhanvien)
         {
             foreach (var observer in observers)
             {
-                observer.Update(sanPham);
+                observer.Update(sanPham, nhanvien);
             }
         }
         public void Register(NHANVIEN observer)

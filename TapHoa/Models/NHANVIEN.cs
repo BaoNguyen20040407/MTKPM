@@ -32,9 +32,9 @@ namespace TapHoa.Models
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<HOADON> HOADONs { get; set; }
 
-        public void Update(SANPHAM sanPham)
+        public void Update(SANPHAM sanPham, NHANVIEN theNhanVien)
         {
-            this.notifications.Add($"Nhan vien {HOTEN} nhan thong bao san pham: {sanPham.TENSP} co su thay doi!");
+            this.notifications.Add($"Nhân viên {theNhanVien.HOTEN} đã cập nhật sản phẩm {sanPham.TENSP} vào lúc {DateTime.Now}!");
         }
     }
 }

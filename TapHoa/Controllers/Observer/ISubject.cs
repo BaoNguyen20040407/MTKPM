@@ -11,6 +11,6 @@ namespace TapHoa.Controllers.Observer
     {
         void Register(NHANVIEN observer);
         void Unregister(NHANVIEN observer);
-        void Notify(SANPHAM sanPham);
+        void Notify(SANPHAM sanPham, NHANVIEN nhanvien);
     }
 }

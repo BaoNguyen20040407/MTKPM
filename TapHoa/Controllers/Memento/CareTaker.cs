@@ -3,13 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using TapHoa.Models;
 
 namespace TapHoa.Controllers.Memento
 {
     public class CareTaker
     {
         private List<Memento> mementos = new List<Memento>();
+        public SANPHAM sanPham;
         public int count = 0;
+        //public CareTaker(SANPHAM sanpham)
+        //{
+        //    this.sanPham = sanpham;
+        //}
         public void AddMemento(Memento memento)
         {
             mementos.Add(memento);
@@ -21,11 +27,11 @@ namespace TapHoa.Controllers.Memento
         }
         public Memento GetLast()
         {
-            if (count > 1)
+            if (count > 0)
             {
                 count--;
             }
-            return mementos[count - 1];
+            return mementos[count];
         }
     }
 }
