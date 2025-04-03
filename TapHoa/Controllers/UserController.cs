@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Mvc;
+using TapHoa.Controllers.Composite;
+using TapHoa.Controllers.Facade;
 using TapHoa.Controllers.Memento;
 using TapHoa.Controllers.Observer;
 using TapHoa.Controllers.Singleton;
@@ -151,33 +153,30 @@ namespace TapHoa.Controllers
         [HttpPost]
         public ActionResult Login(NHANVIEN cust)
         {
-            
             if (ModelState.IsValid)
             {
-                // Kiểm tra trường hợp đặc biệt không cho phép đăng nhập
-                if (cust.TENDANGNHAP == "tiemtaphoa" && cust.MATKHAU == "taphoacuatui")
+                LoginFacade loginFacade = new LoginFacade();
+                object userSession;
+                string role;
+                string errorMessage = loginFacade.Login(cust.TENDANGNHAP, cust.MATKHAU, out userSession, out role);
+
+                if (errorMessage == null) // Đăng nhập thành công
                 {
-                    ViewBag.LoginFail = "Có thể tên đăng nhập hoặc mật khẩu đã sai vui lòng kiểm tra lại !!!";
-                    return View("Login");
-                }
-                // Kiểm tra trong bảng Admin trước
-                var adminCheck = db.ADMINs.FirstOrDefault(a => a.TENDANGNHAP == cust.TENDANGNHAP && a.MATKHAU == cust.MATKHAU);
-                if (adminCheck != null)
-                {
-                    // Nếu hợp lệ, thiết lập quyền admin và lưu trữ thông tin trong session
-                    Session["ADMIN"] = adminCheck;
-                    return RedirectToAction("Index", "Home"); // Điều hướng đến trang admin
-                }
-                // Kiểm tra trong bảng NhanVien nếu không phải admin
-                var check = db.NHANVIENs.FirstOrDefault(x => x.TENDANGNHAP == cust.TENDANGNHAP && x.MATKHAU == cust.MATKHAU);
-                if (check != null)
-                {
-                    Session["NHANVIEN"] = check;
+                    if (role == "Admin")
+                    {
+                        Session["ADMIN"] = userSession;
+                    }
+                    else if (role == "Employee")
+                    {
+                        Session["NHANVIEN"] = userSession;
+                    }
                     return RedirectToAction("Index", "Home");
                 }
-                else
-                    ViewBag.LoginFail = "Có thể tên đăng nhập hoặc mật khẩu đã sai vui lòng kiểm tra lại !!!";
+
+                // Đăng nhập thất bại
+                ViewBag.LoginFail = errorMessage;
             }
+
             return View("Login");
         }
         private string GenerateNewMANV()
@@ -222,18 +221,31 @@ namespace TapHoa.Controllers
         {
             if (ModelState.IsValid)
             {
-                var existingUser = db.NHANVIENs.FirstOrDefault(x => x.SDT == cust.SDT);
-                if (existingUser != null)
+                try
                 {
-                    ViewBag.RegisterFail = "Số điện thoại đã được sử dụng.";
-                    return View();
+                    var db = DbSingleton.Instance;
+
+                    // Tạo các hành động đăng ký
+                    var registerAction = new RegisterAction(db);
+
+                    // Composite Pattern để gộp nhiều hành động (mở rộng sau này)
+                    var userActionComposite = new UserActionComposite();
+                    userActionComposite.Add(registerAction);
+
+                    // Thực thi hành động
+                    userActionComposite.Execute(cust);
+
+                    return RedirectToAction("Login");
                 }
-                cust.MANV = GenerateNewMANV();
-                db.NHANVIENs.Add(cust);
-                db.SaveChanges();
+                catch (InvalidOperationException ex)
+                {
+                    ViewBag.RegisterFail = ex.Message;
+                }
             }
-            return RedirectToAction("Login");
+
+            return View();
         }
+
         public ActionResult Logout()
         {
             Session["ADMIN"] = null;
@@ -250,19 +262,29 @@ namespace TapHoa.Controllers
         {
             if (cust.TENDANGNHAP == "tiemtaphoa")
             {
+                ViewBag.Message = "Không thể đặt lại mật khẩu cho tài khoản hệ thống.";
                 return View();
             }
-            var user = db.NHANVIENs.FirstOrDefault(x => x.TENDANGNHAP == cust.TENDANGNHAP);
-            if (user != null)
+
+            try
             {
-                user.MATKHAU = "a1111111"; // Reset password to default value
-                db.SaveChanges();
-                ViewBag.Message = "Password has been reset to the default value. Please log in with the new password.";
+                // Tạo một instance của Composite để chứa nhiều hành động
+                UserActionComposite composite = new UserActionComposite();
+
+                // Thêm hành động ResetPassword vào Composite
+                composite.Add(new ResetPasswordAction(db));
+
+                // Thực thi tất cả hành động
+                composite.Execute(cust);
+
+                ViewBag.Message = "Mật khẩu đã được đặt lại về mặc định.";
                 return RedirectToAction("Login", "User");
             }
-
-            ViewBag.Message = "Invalid or expired token.";
-            return View();
+            catch (Exception ex)
+            {
+                ViewBag.Message = ex.Message;
+                return View();
+            }
         }
 
     }

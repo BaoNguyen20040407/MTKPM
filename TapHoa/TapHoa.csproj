@@ -155,8 +155,16 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\BanHangController.cs" />
+    <Compile Include="Controllers\Composite\IUserAction.cs" />
+    <Compile Include="Controllers\Composite\RegisterAction.cs" />
+    <Compile Include="Controllers\Composite\ResetPasswordAction.cs" />
+    <Compile Include="Controllers\Composite\UserActionComposite.cs" />
     <Compile Include="Controllers\Decorator\BaseImageHandler.cs" />
     <Compile Include="Controllers\Command\CreateDVTCommand.cs" />
+    <Compile Include="Controllers\Facade\AdminAuthentication.cs" />
+    <Compile Include="Controllers\Facade\EmployeeAuthentication.cs" />
+    <Compile Include="Controllers\Facade\LoginFacade.cs" />
+    <Compile Include="Controllers\Facade\SessionManager.cs" />
     <Compile Include="Controllers\Memento\CareTaker.cs" />
     <Compile Include="Controllers\Memento\CareTakerList.cs" />
     <Compile Include="Controllers\Memento\Memento.cs" />
@@ -182,6 +190,10 @@
     <Compile Include="Controllers\LOAIHANGsController.cs" />
     <Compile Include="Controllers\SANPHAMsController.cs" />
     <Compile Include="Controllers\Singleton\ObserverSingleton.cs" />
+    <Compile Include="Controllers\State\AvailableState.cs" />
+    <Compile Include="Controllers\State\GetProductState.cs" />
+    <Compile Include="Controllers\State\IProductState.cs" />
+    <Compile Include="Controllers\State\OutOfStockState.cs" />
     <Compile Include="Controllers\Strategy\Context.cs" />
     <Compile Include="Controllers\Strategy\FirstChoice.cs" />
     <Compile Include="Controllers\Strategy\IChoice.cs" />

@@ -10,6 +10,7 @@ using System.Web.Mvc;
 using TapHoa.Controllers.Memento;
 using TapHoa.Controllers.Observer;
 using TapHoa.Controllers.Singleton;
+using TapHoa.Controllers.State;
 using TapHoa.Models;
 
 namespace TapHoa.Controllers
@@ -20,6 +21,7 @@ namespace TapHoa.Controllers
         private readonly IImageHandler _imageHandler;
         NotifySubject notifySubject = ObserverSingleton.Instance;
         CareTakerList careTakers = new CareTakerList();
+        private readonly ProductStateController _productStateController = new ProductStateController();
         public SANPHAMsController()
         {
             _imageHandler = new ImageCompressionDecorator(
@@ -117,6 +119,8 @@ namespace TapHoa.Controllers
 
                 db.SANPHAMs.Add(sanpham);
                 db.SaveChanges();
+                // Áp dụng State Pattern để lấy trạng thái sản phẩm
+                TempData["Message"] = _productStateController.GetProductState(sanpham.SOLUONG.GetValueOrDefault());
                 if (careTakers.Get(sanpham) == null)
                 {
                     CareTaker careTaker = new CareTaker(sanpham);
@@ -181,6 +185,8 @@ namespace TapHoa.Controllers
                 careTakers.Get(sanpham).AddMemento(sanpham.Save());
                 notifySubject.Notify(existingProduct, Session["NHANVIEN"] as TapHoa.Models.NHANVIEN);
                 db.SaveChanges();
+                // Áp dụng State Pattern để lấy trạng thái sản phẩm
+                TempData["Message"] = _productStateController.GetProductState(sanpham.SOLUONG.GetValueOrDefault());
                 return RedirectToAction("Index");
             }
 
