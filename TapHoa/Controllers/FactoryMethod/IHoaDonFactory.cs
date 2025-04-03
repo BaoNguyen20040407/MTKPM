@@ -11,5 +11,6 @@ namespace TapHoa.Controllers
     {
         HOADON CreateHoaDon(string manv, OrderData orderData);
         CTHD CreateChiTietHoaDon(int sohd, DonHang sp);
+        HOADON CreateHoaDonHoanTra(string manv, OrderData orderData, int sohdGoc);
     }
 }
